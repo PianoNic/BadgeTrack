@@ -2,7 +2,7 @@
   <img src="assets/logo.png" width="200" alt="BadgeTrack Logo" />
 </p>
 <p align="center">
-  <strong>BadgeTrack is a Visitor Badge Server.</strong>
+  <strong>BadgeTrack is a Visitor Badge Server.</strong> 
   A powerful service for generating beautiful visitor badges.
 </p>
 <p align="center">
