@@ -90,3 +90,18 @@ def test_legacy_databases_lose_the_per_visitor_unique_index():
     assert repository.record_visit("first", "visitor") == 1
     assert repository.record_visit("second", "visitor") == 1
     assert repository.record_visit("second", "visitor") == 1
+
+
+def test_sentry_stays_off_without_a_dsn_and_scrubs_cookies():
+    from src.infrastructure.monitoring.sentry_error_reporter import SentryErrorReporter
+
+    assert SentryErrorReporter(None, "test", "0.0.0").initialize() is False
+    event = {
+        "request": {
+            "cookies": {"visitor_id": "abc"},
+            "headers": {"Cookie": "visitor_id=abc", "Accept": "*/*"},
+        }
+    }
+    scrubbed = SentryErrorReporter.scrub(event, {})
+    assert scrubbed["request"]["cookies"] == "[Filtered]"
+    assert scrubbed["request"]["headers"] == {"Cookie": "[Filtered]", "Accept": "*/*"}
