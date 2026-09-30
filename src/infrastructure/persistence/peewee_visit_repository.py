@@ -17,7 +17,16 @@ class PeeweeVisitRepository:
         self._database = SqliteDatabase(str(database_path))
         self._database.bind([Badge, Cookie])
         self._database.create_tables([Badge, Cookie], safe=True)
+        self._drop_legacy_visitor_index()
         logger.info("Database ready at %s", database_path)
+
+    def _drop_legacy_visitor_index(self) -> None:
+        # Databases created before #18 made cookie_id unique on its own, so a visitor could only ever
+        # be counted on the first badge they saw. Uniqueness is per (cookie_id, badge) now.
+        for index in self._database.get_indexes(Cookie._meta.table_name):
+            if index.unique and index.columns == ["cookie_id"]:
+                self._database.execute_sql(f'DROP INDEX "{index.name}"')
+                logger.info("Dropped legacy unique index %s", index.name)
 
     def record_visit(self, tag: str, visitor_id: str) -> int:
         now = int(time.time())
