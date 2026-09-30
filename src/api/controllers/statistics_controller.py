@@ -21,11 +21,7 @@ class StatisticsController:
     @router.get("/stats")
     async def get_system_statistics(self) -> dict[str, int]:
         stats: VisitStatistics = await self.mediator.send(GetSystemStatisticsQuery())
-        return {
-            "total_tracked_tags": stats.total_tracked_tags,
-            "total_visits": stats.total_visits,
-            "new_badges_today": stats.new_badges_today,
-        }
+        return {"total_tracked_tags": stats.total_tracked_tags, "total_visits": stats.total_visits}
 
     @router.get("/stats/{tag}")
     async def get_tag_statistics(self, tag: str) -> dict[str, object]:
@@ -33,4 +29,4 @@ class StatisticsController:
             stats: TagStatistics = await self.mediator.send(GetTagStatisticsQuery(tag=tag))
         except InvalidBadgeError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
-        return {"tag": stats.tag, "visit_count": stats.visit_count, "last_updated": stats.last_updated}
+        return {"tag": stats.tag, "visit_count": stats.visit_count}

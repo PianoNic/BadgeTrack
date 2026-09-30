@@ -44,9 +44,8 @@ class PeeweeVisitRepository:
         badge = Badge.get_or_none(Badge.tag == tag)
         return badge.visits if badge else 0
 
-    def get_statistics(self, created_after: int) -> VisitStatistics:
+    def get_statistics(self) -> VisitStatistics:
         return VisitStatistics(
             total_tracked_tags=Badge.select().count(),
             total_visits=Badge.select(fn.SUM(Badge.visits)).scalar() or 0,
-            new_badges_today=Badge.select().where(Badge.created > created_after).count(),
         )

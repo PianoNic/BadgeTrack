@@ -5,4 +5,3 @@ from dataclasses import dataclass
 class TagStatistics:
     tag: str
     visit_count: int
-    last_updated: int

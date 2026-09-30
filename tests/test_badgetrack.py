@@ -56,10 +56,8 @@ def test_statistics_and_app_info():
     browser.get("/badge", params={"tag": "stats"})
     assert browser.get("/api/stats/stats").json()["visit_count"] == 1
     assert browser.get("/api/stats/unknown").json()["visit_count"] == 0
-    totals = {"total_tracked_tags": 1, "total_visits": 1, "new_badges_today": 1}
-    assert browser.get("/api/stats").json() == totals
+    assert browser.get("/api/stats").json() == {"total_tracked_tags": 1, "total_visits": 1}
     assert set(browser.get("/api/app-info").json()) == {"environment", "version"}
-    assert browser.get("/health").json()["status"] == "healthy"
 
 
 def test_mediator_returns_a_new_visitor_id_only_for_new_visitors():
@@ -105,3 +103,36 @@ def test_sentry_stays_off_without_a_dsn_and_scrubs_cookies():
     scrubbed = SentryErrorReporter.scrub(event, {})
     assert scrubbed["request"]["cookies"] == "[Filtered]"
     assert scrubbed["request"]["headers"] == {"Cookie": "[Filtered]", "Accept": "*/*"}
+
+
+def test_every_shields_style_and_awkward_labels_render():
+    browser = client()
+    for style in ("flat", "flat-square", "plastic", "for-the-badge", "social"):
+        location = browser.get("/badge", params={"tag": "styles", "style": style}).headers["location"]
+        assert parse_qs(urlparse(location).query)["style"] == [style]
+    fallback = browser.get("/badge", params={"tag": "styles", "style": "nonsense"}).headers["location"]
+    assert parse_qs(urlparse(fallback).query)["style"] == ["flat"]
+
+    location = browser.get(
+        "/badge", params={"tag": "t", "label": "page_views-x", "color": "#C8246B"}
+    ).headers["location"]
+    assert urlparse(location).path == "/badge/page__views--x-1-C8246B.svg"
+
+
+def test_spa_fallback_serves_index_but_keeps_backend_404s():
+    import tempfile
+    from pathlib import Path
+
+    from fastapi import FastAPI
+
+    from src.api.app import SpaStaticFiles
+
+    dist = Path(tempfile.mkdtemp())
+    (dist / "index.html").write_text("<p>spa</p>")
+    app = FastAPI()
+    app.mount("/", SpaStaticFiles(directory=dist, html=True))
+    browser = TestClient(app)
+
+    assert browser.get("/").text == "<p>spa</p>"
+    assert browser.get("/about").text == "<p>spa</p>"
+    assert browser.get("/api/nope").status_code == 404

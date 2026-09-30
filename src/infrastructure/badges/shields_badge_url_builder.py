@@ -1,4 +1,4 @@
-import urllib.parse
+from urllib.parse import quote, urlencode
 
 from src.domain.models.badge_request import BadgeRequest
 
@@ -7,10 +7,13 @@ class ShieldsBadgeUrlBuilder:
     BASE_URL = "https://img.shields.io/badge/"
 
     def build(self, request: BadgeRequest, count: int) -> str:
-        url = (
-            f"{self.BASE_URL}{urllib.parse.quote(request.label)}-{count}-{request.color}.svg"
-            f"?style={request.style}"
-        )
+        path = f"{self._segment(request.label)}-{count}-{self._segment(request.color)}.svg"
+        query = {"style": request.style.value}
         if request.logo:
-            url += f"&logo={urllib.parse.quote(request.logo)}"
-        return url
+            query["logo"] = request.logo
+        return f"{self.BASE_URL}{path}?{urlencode(query)}"
+
+    @staticmethod
+    def _segment(text: str) -> str:
+        # shields.io splits the path on "-" and reads "_" as a space, so both are doubled to stay literal
+        return quote(text.replace("-", "--").replace("_", "__"))
