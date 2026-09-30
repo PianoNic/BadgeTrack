@@ -2,5 +2,6 @@ fastapi==0.142.1
 uvicorn==0.54.0
 peewee==4.5.2
 mediatorx==1.0.1
+httpx==0.28.1
 colorlog==6.12.0
 sentry-sdk[fastapi]==2.71.0

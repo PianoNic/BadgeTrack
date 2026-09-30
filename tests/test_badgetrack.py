@@ -10,7 +10,18 @@ from fastapi.testclient import TestClient
 
 from src.api.app import create_app
 from src.application.commands.record_visit.record_visit_command import RecordVisitCommand
+from src.infrastructure.badges.shields_badge_image_fetcher import ShieldsBadgeImageFetcher
 from src.infrastructure.dependency_injection import build_mediator
+
+original_fetch = ShieldsBadgeImageFetcher.fetch
+
+
+async def _no_network(_self, _url):
+    return None
+
+
+# tests never call shields.io; without an image /badge falls back to redirecting there
+ShieldsBadgeImageFetcher.fetch = _no_network
 
 
 def temp_database() -> str:
@@ -26,13 +37,13 @@ def count_in(location: str) -> str:
     return urlparse(location).path.split("/")[-1].split("-")[1]
 
 
-def test_badge_redirects_to_shields_and_sets_a_visitor_cookie():
+def test_badge_falls_back_to_a_shields_redirect_and_sets_a_visitor_cookie():
     response = client().get("/badge", params={"tag": "readme", "color": "237e61", "logo": "github"})
     assert response.status_code == 302
     location = response.headers["location"]
     assert location.startswith("https://img.shields.io/badge/visits-1-237e61.svg")
     assert parse_qs(urlparse(location).query) == {"style": ["flat"], "logo": ["github"]}
-    assert response.headers["cache-control"].startswith("no-store")
+    assert "no-store" in response.headers["cache-control"]
     assert "visitor_id=" in response.headers["set-cookie"]
 
 
@@ -136,3 +147,39 @@ def test_spa_fallback_serves_index_but_keeps_backend_404s():
     assert browser.get("/").text == "<p>spa</p>"
     assert browser.get("/about").text == "<p>spa</p>"
     assert browser.get("/api/nope").status_code == 404
+
+
+def test_badge_svg_is_served_directly_with_caching_off():
+    async def fake_shields(_self, url):
+        return f"<svg>{url}</svg>".encode()
+
+    ShieldsBadgeImageFetcher.fetch = fake_shields
+    try:
+        response = client().get("/badge", params={"tag": "fresh"})
+    finally:
+        ShieldsBadgeImageFetcher.fetch = _no_network
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("image/svg+xml")
+    assert "no-store" in response.headers["cache-control"]
+    assert response.headers["content-security-policy"].startswith("default-src 'none'")
+    assert "visits-1-" in response.text
+    assert "visitor_id=" in response.headers["set-cookie"]
+
+
+def test_fetched_badges_are_cached_by_url():
+    import httpx
+
+    calls = []
+
+    def shields(request):
+        calls.append(str(request.url))
+        return httpx.Response(200, headers={"content-type": "image/svg+xml"}, content=b"<svg/>")
+
+    fetcher = ShieldsBadgeImageFetcher(cache_size=1)
+    fetcher._client = httpx.AsyncClient(transport=httpx.MockTransport(shields))
+    fetch = original_fetch.__get__(fetcher)
+
+    for url in ("a", "a", "b", "a"):
+        assert asyncio.run(fetch(f"https://img.shields.io/{url}.svg")) == b"<svg/>"
+    assert [call[-5:] for call in calls] == ["a.svg", "b.svg", "a.svg"]

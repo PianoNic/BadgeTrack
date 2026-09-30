@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from mediatorx import Mediator
 
 from src.api.controller import controller
@@ -12,13 +12,19 @@ router = APIRouter(tags=["Badge"])
 
 VISITOR_COOKIE = "visitor_id"
 _ONE_YEAR_SECONDS = 31536000
-# badges are embedded in READMEs behind image proxies; the redirect must never be cached
+# Badges sit behind image proxies like GitHub's camo, which cache for as long as the response allows.
+# shields.io answers with max-age=432000 (5 days), so the SVG is served from here with caching off.
 _NO_CACHE_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
-    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    "Cache-Control": "max-age=0, no-cache, no-store, must-revalidate",
     "Pragma": "no-cache",
     "Expires": "0",
+}
+# the SVG is shown from this origin, so it gets no scripts, fonts or remote loads
+_SVG_HEADERS = {
+    **_NO_CACHE_HEADERS,
+    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'",
 }
 
 
@@ -49,7 +55,10 @@ class BadgeController:
         except InvalidBadgeError as error:
             raise HTTPException(status_code=400, detail="Invalid parameters.") from error
 
-        response = RedirectResponse(visit.badge_url, status_code=302, headers=_NO_CACHE_HEADERS)
+        if visit.badge_svg is None:
+            response = RedirectResponse(visit.badge_url, status_code=302, headers=_NO_CACHE_HEADERS)
+        else:
+            response = Response(visit.badge_svg, media_type="image/svg+xml", headers=_SVG_HEADERS)
         if visit.new_visitor_id:
             response.set_cookie(
                 key=VISITOR_COOKIE,
