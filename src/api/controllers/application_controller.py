@@ -1,5 +1,3 @@
-import time
-
 from fastapi import APIRouter, Depends
 from mediatorx import Mediator
 
@@ -21,7 +19,3 @@ class ApplicationController:
     async def get_application_info(self) -> dict[str, str]:
         info: ApplicationInfo = await self.mediator.send(GetApplicationInfoQuery())
         return {"environment": info.environment, "version": info.version}
-
-    @router.get("/health")
-    async def health(self) -> dict[str, object]:
-        return {"status": "healthy", "timestamp": int(time.time())}

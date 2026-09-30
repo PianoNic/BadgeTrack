@@ -5,4 +5,3 @@ from dataclasses import dataclass
 class VisitStatistics:
     total_tracked_tags: int
     total_visits: int
-    new_badges_today: int

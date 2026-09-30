@@ -1,5 +1,3 @@
-import time
-
 from src.application.abstractions.visit_repository import IVisitRepository
 from src.application.queries.get_tag_statistics.get_tag_statistics_query import GetTagStatisticsQuery
 from src.application.queries.get_tag_statistics.tag_statistics import TagStatistics
@@ -18,5 +16,4 @@ class GetTagStatisticsQueryHandler:
         return TagStatistics(
             tag=query.tag,
             visit_count=self._repository.get_visit_count(query.tag),
-            last_updated=int(time.time()),
         )

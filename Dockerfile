@@ -1,3 +1,10 @@
+FROM node:24-alpine AS frontend
+WORKDIR /frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
 FROM python:3.14.7-slim
 
 WORKDIR /app
@@ -9,9 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY asgi.py application.properties ./
 COPY src/ src/
-COPY static/ static/
-COPY templates/ templates/
-COPY assets/ assets/
+COPY --from=frontend /frontend/dist frontend/dist
 
 EXPOSE 8000
 
