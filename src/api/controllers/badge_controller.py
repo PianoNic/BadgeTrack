@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from mediatorx import Mediator
 
-from src.api.dependencies import MediatorDependency
+from src.api.controller import controller
+from src.api.dependencies import get_mediator
 from src.application.commands.record_visit.record_visit_command import RecordVisitCommand
 from src.application.commands.record_visit.recorded_visit import RecordedVisit
 from src.domain.exceptions import InvalidBadgeError
@@ -20,36 +22,40 @@ _NO_CACHE_HEADERS = {
 }
 
 
-@router.get("/badge")
-async def badge(
-    request: Request,
-    mediator: MediatorDependency,
-    tag: str,
-    label: str = "visits",
-    color: str = "4ade80",
-    style: str = "flat",
-    logo: str = "",
-) -> RedirectResponse:
-    command = RecordVisitCommand(
-        tag=tag,
-        label=label,
-        color=color,
-        style=style,
-        logo=logo,
-        visitor_id=request.cookies.get(VISITOR_COOKIE),
-    )
-    try:
-        visit: RecordedVisit = await mediator.send(command)
-    except InvalidBadgeError as error:
-        raise HTTPException(status_code=400, detail="Invalid parameters.") from error
+@controller(router)
+class BadgeController:
+    mediator: Mediator = Depends(get_mediator)
 
-    response = RedirectResponse(visit.badge_url, status_code=302, headers=_NO_CACHE_HEADERS)
-    if visit.new_visitor_id:
-        response.set_cookie(
-            key=VISITOR_COOKIE,
-            value=visit.new_visitor_id,
-            max_age=_ONE_YEAR_SECONDS,
-            httponly=True,
-            samesite="lax",
+    @router.get("/badge")
+    async def badge(
+        self,
+        request: Request,
+        tag: str,
+        label: str = "visits",
+        color: str = "4ade80",
+        style: str = "flat",
+        logo: str = "",
+    ) -> RedirectResponse:
+        command = RecordVisitCommand(
+            tag=tag,
+            label=label,
+            color=color,
+            style=style,
+            logo=logo,
+            visitor_id=request.cookies.get(VISITOR_COOKIE),
         )
-    return response
+        try:
+            visit: RecordedVisit = await self.mediator.send(command)
+        except InvalidBadgeError as error:
+            raise HTTPException(status_code=400, detail="Invalid parameters.") from error
+
+        response = RedirectResponse(visit.badge_url, status_code=302, headers=_NO_CACHE_HEADERS)
+        if visit.new_visitor_id:
+            response.set_cookie(
+                key=VISITOR_COOKIE,
+                value=visit.new_visitor_id,
+                max_age=_ONE_YEAR_SECONDS,
+                httponly=True,
+                samesite="lax",
+            )
+        return response
