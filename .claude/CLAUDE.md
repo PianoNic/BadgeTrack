@@ -56,3 +56,4 @@ Visitor counter badges. FastAPI backend (onion architecture, CQRS via mediatorx,
 - **Version**: `application.properties` (`APP_VERSION`, `APP_ENVIRONMENT`). Don't bump it by hand; publishing a release runs `.github/workflows/release.yaml`, which writes the tag into it on main and then builds the image.
 - **`/badge` is embedded in other people's READMEs**: its query parameters, the `visitor_id` cookie and the database schema must stay backwards compatible. It serves the shields.io SVG itself with caching off (shields.io caches for 5 days) and falls back to a redirect if shields.io is unreachable.
 - **Errors**: set `SENTRY_DSN` to report 5xx errors to Sentry/GlitchTip.
+- **Docs**: detail lives in `docs/` (self-hosting, configuration, API, development, architecture, releasing). Keep the README to screenshots, features, quick start and links; update the matching doc when behaviour changes.
