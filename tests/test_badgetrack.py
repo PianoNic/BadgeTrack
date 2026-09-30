@@ -69,3 +69,24 @@ def test_mediator_returns_a_new_visitor_id_only_for_new_visitors():
     again = asyncio.run(mediator.send(returning))
     assert first.new_visitor_id and again.new_visitor_id is None
     assert (first.visit_count, again.visit_count) == (1, 1)
+
+
+def test_a_visitor_counts_on_every_badge_they_see():
+    browser = client()
+    browser.get("/badge", params={"tag": "first"})
+    second = browser.get("/badge", params={"tag": "second"})
+    assert count_in(second.headers["location"]) == "1"
+    assert browser.get("/api/stats/second").json()["visit_count"] == 1
+
+
+def test_legacy_databases_lose_the_per_visitor_unique_index():
+    from src.infrastructure.persistence.peewee_visit_repository import PeeweeVisitRepository
+
+    path = temp_database()
+    legacy = PeeweeVisitRepository(path)
+    legacy._database.execute_sql('CREATE UNIQUE INDEX "cookie_cookie_id" ON "cookie" ("cookie_id")')
+
+    repository = PeeweeVisitRepository(path)
+    assert repository.record_visit("first", "visitor") == 1
+    assert repository.record_visit("second", "visitor") == 1
+    assert repository.record_visit("second", "visitor") == 1

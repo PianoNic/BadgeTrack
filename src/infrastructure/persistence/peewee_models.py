@@ -8,7 +8,7 @@ class Badge(Model):
 
 
 class Cookie(Model):
-    cookie_id = CharField(max_length=64, unique=True)
+    cookie_id = CharField(max_length=64)
     badge = ForeignKeyField(Badge, backref="cookies")
     last_visit = IntegerField()
 
