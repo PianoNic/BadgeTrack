@@ -20,7 +20,7 @@ class BadgeRequest:
     logo: str
 
     @classmethod
-    def parse(cls, tag: str, label: str, color: str, style: str, logo: str) -> "BadgeRequest":
+    def parse(cls, tag: str, label: str, color: str, style: str, logo: str) -> BadgeRequest:
         values = {
             "tag": tag.strip(),
             "label": label.strip(),

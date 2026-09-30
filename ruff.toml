@@ -1,5 +1,5 @@
 line-length = 110
-target-version = "py311"
+target-version = "py314"
 # vendored from fastapi-utils via SchulwareAPI; kept identical so it can be re-synced
 extend-exclude = ["src/api/controller.py"]
 
