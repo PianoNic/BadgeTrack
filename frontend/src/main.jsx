@@ -20,6 +20,15 @@ const hueToHex = (hue) => {
   return `${f(0)}${f(8)}${f(4)}`;
 };
 
+const hexToHue = (hex) => {
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const delta = max - Math.min(r, g, b);
+  if (!delta) return null;
+  const sector = max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+  return Math.round((sector * 60 + 360) % 360);
+};
+
 // lucide 1.x dropped brand icons; this is its former GitHub outline (ISC) so it matches the rest
 const GitHub = ({ size = 24 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -83,6 +92,7 @@ function App() {
   const [theme, cycleTheme] = useTheme();
   const [badge, setBadge] = useState({ tag: '', label: 'visits', color: 'c8246b', style: 'flat', logo: '' });
   const [totals, setTotals] = useState(null);
+  const [lastHue, setLastHue] = useState(330);
   const [info, setInfo] = useState(null);
   const tag = badge.tag.trim();
   const count = useVisitCount(tag);
@@ -94,6 +104,12 @@ function App() {
   }, []);
 
   const design = { ...badge, label: badge.label.trim() || 'visits', color: badge.color.trim() || 'c8246b', tag };
+  // greys and colour names have no hue to show, so the slider stays where it last was
+  const colourHue = HEX.test(design.color) ? hexToHue(design.color) : null;
+  useEffect(() => {
+    if (colourHue !== null) setLastHue(colourHue);
+  }, [colourHue]);
+  const hue = colourHue ?? lastHue;
   const ThemeIcon = THEMES[theme];
 
   return (
@@ -149,8 +165,12 @@ function App() {
                 </div>
                 <div class="custom-colour">
                   <input
-                    type="range" class="hue" min="0" max="359" aria-label="Pick any hue"
-                    onInput={(e) => setBadge({ ...badge, color: hueToHex(Number(e.currentTarget.value)) })}
+                    type="range" class="hue" min="0" max="359" aria-label="Pick any hue" value={hue}
+                    onInput={(e) => {
+                      const value = Number(e.currentTarget.value);
+                      setLastHue(value);
+                      setBadge({ ...badge, color: hueToHex(value) });
+                    }}
                   />
                   <span class="hex-field">
                     <i style={{ background: HEX.test(design.color) ? `#${design.color}` : design.color }} />
