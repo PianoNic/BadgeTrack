@@ -1,6 +1,5 @@
-fastapi==0.115.12
-uvicorn==0.34.3
-peewee==3.18.1
-pydantic==2.11.7
-pytest
-httpx
+fastapi==0.142.1
+uvicorn==0.54.0
+peewee==4.5.2
+mediatorx==1.0.1
+colorlog==6.12.0
