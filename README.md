@@ -13,7 +13,7 @@
   <a href="https://github.com/PianoNic/BadgeTrack/blob/main/LICENSE"><img src="https://img.shields.io/github/license/PianoNic/BadgeTrack?color=c8246b&label=License" alt="License"/></a>
   <a href="https://github.com/PianoNic/BadgeTrack/releases"><img src="https://img.shields.io/github/v/release/PianoNic/BadgeTrack?include_prereleases&color=c8246b&label=Latest%20Release" alt="Latest release"/></a>
   <a href="https://badgetrack.pianonic.ch"><img src="https://img.shields.io/badge/Create%20Badge-badgetrack.pianonic.ch-c8246b.svg" alt="Create a badge"/></a>
-  <a href="#installation"><img src="https://img.shields.io/badge/Selfhost-Instructions-c8246b.svg" alt="Self-hosting"/></a>
+  <a href="docs/self-hosting.md"><img src="https://img.shields.io/badge/Selfhost-Instructions-c8246b.svg" alt="Self-hosting"/></a>
 </p>
 
 ## Screenshots
@@ -40,87 +40,22 @@
 - **Live preview**: the generator shows the real count and all five styles as you type, without counting a visit.
 - **Self-hostable**: one container, one SQLite file.
 
-## Usage
+## Quick start
 
-Create a badge at [badgetrack.pianonic.ch](https://badgetrack.pianonic.ch), or build the URL yourself:
+Create a badge at [badgetrack.pianonic.ch](https://badgetrack.pianonic.ch), or write the URL yourself:
 
 ```markdown
-![visits](https://badgetrack.pianonic.ch/badge?tag=my-project&label=visits&color=c8246b&style=flat)
+![visits](https://badgetrack.pianonic.ch/badge?tag=my-project)
 ```
 
-| Parameter | Default | Description |
-|---|---|---|
-| `tag` | required | Identifies the counter. Every embed with the same tag shares one count. |
-| `label` | `visits` | Text on the left of the badge. |
-| `color` | `4ade80` | Hex code or shields.io colour name. |
-| `style` | `flat` | `flat`, `flat-square`, `plastic`, `for-the-badge` or `social`. |
-| `logo` | none | A [Simple Icons](https://simpleicons.org) slug, e.g. `github`. |
+## Documentation
 
-`GET /api/stats/{tag}` returns a tag's count without counting a visit, and `GET /api/stats` returns the totals. Interactive docs live at `/docs`.
-
-## Installation
-
-### Docker Compose (recommended)
-
-Create a `compose.yml`:
-
-```yaml
-services:
-  badgetrack:
-    image: pianonic/badgetrack:latest # Docker Hub
-    # image: ghcr.io/pianonic/badgetrack:latest # GitHub Container Registry
-    ports:
-      - "8925:8000"
-    volumes:
-      - ./data:/app/data # the counts live here
-    restart: unless-stopped
-```
-
-```bash
-docker compose up -d
-```
-
-Open <http://localhost:8925>.
-
-### Configuration
-
-| Variable | Default | Description |
-|---|---|---|
-| `SENTRY_DSN` | not set | Reports server errors to Sentry or GlitchTip. |
-| `LOG_LEVEL` | `INFO` | Python log level. |
-| `APP_VERSION` / `APP_ENVIRONMENT` | from `application.properties` | Override the version and environment shown in the footer. |
-
-### From source
-
-Requires Python 3.14 and Node 22+.
-
-```bash
-cd frontend && npm install && npm run build && cd ..
-pip install -r requirements.txt
-python asgi.py
-```
-
-For frontend work, run `npm run dev` in `frontend/` next to `python asgi.py`; Vite proxies `/api` and `/badge` to port 8000.
-
-Run the tests with `python -m pytest tests`.
-
-<details>
-<summary><strong>Tech stack</strong></summary>
-
-- **Backend**: Python + FastAPI, peewee on SQLite, [mediatorx](https://pypi.org/project/mediatorx/) for CQRS, class-based controllers, optional Sentry.
-- **Frontend**: [Preact](https://preactjs.com) + [Lucide](https://lucide.dev) icons, built with Vite and served by FastAPI as a SPA.
-- **Architecture**: onion; dependencies point inwards only.
-
-```
-src/
-  domain/          badge request, statistics, badge styles - no framework dependencies
-  application/     record-visit command, statistics and app-info queries, plus the ports they need
-  infrastructure/  peewee repository, shields.io adapters, configuration, Sentry, composition root
-  api/             FastAPI controllers, which only build a message and send it
-frontend/          Preact SPA; npm run build emits frontend/dist, served at /
-```
-
-</details>
+- [Badge URL and API](docs/api.md): every parameter and the stats endpoints
+- [Self-hosting](docs/self-hosting.md): Docker Compose, data volume and updating
+- [Configuration](docs/configuration.md): environment variables
+- [Development](docs/development.md): running from source, tests and linting
+- [Architecture](docs/architecture.md): how the code is organised
+- [Releasing](docs/releasing.md): how versions and images are published
 
 ## License
 
